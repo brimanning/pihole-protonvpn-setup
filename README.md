@@ -306,10 +306,29 @@ sudo ./setup-protonvpn.sh
 
 ---
 
+## Uninstall
+
+To remove ProtonVPN and restore your Pi to its previous state:
+
+```bash
+sudo ./uninstall-protonvpn.sh
+```
+
+The uninstall script will:
+- Stop and disable the OpenVPN service
+- Securely remove credentials
+- Optionally remove downloaded server configs
+- Reset iptables rules (if kill switch was enabled)
+- Restore Pi-hole settings
+- Optionally remove the OpenVPN package
+
+---
+
 ## Files in This Repository
 
 - `README.md` - This documentation
 - `setup-protonvpn.sh` - Automated setup script
+- `uninstall-protonvpn.sh` - Uninstall/undo script
 - `killswitch.sh` - VPN kill switch script
 - `update-resolv-conf` - DNS update script for OpenVPN
 
