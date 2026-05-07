@@ -1,0 +1,21 @@
+# Credentials - NEVER commit these
+credentials.txt
+*.credentials
+*.secret
+
+# OpenVPN configs with embedded credentials
+*.ovpn
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

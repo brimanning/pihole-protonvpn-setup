@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# OpenVPN DNS Update Script
+# Prevents DNS leaks by updating resolv.conf when VPN connects/disconnects
+# Copy to /etc/openvpn/update-resolv-conf
+
+case "$script_type" in
+  up)
+    for optionname in ${!foreign_option_*}; do
+      option="${!optionname}"
+      part1=$(echo "$option" | cut -d " " -f 1)
+      if [ "$part1" == "dhcp-option" ]; then
+        part2=$(echo "$option" | cut -d " " -f 2)
+        part3=$(echo "$option" | cut -d " " -f 3)
+        if [ "$part2" == "DNS" ]; then
+          echo "nameserver $part3" | resolvconf -a tun.$dev -m 0 -x
+        fi
+      fi
+    done
+    ;;
+  down)
+    resolvconf -d tun.$dev
+    ;;
+esac
