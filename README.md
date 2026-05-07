@@ -296,13 +296,40 @@ Try different ProtonVPN servers or switch between UDP/TCP protocols.
 
 ---
 
-## Quick Setup Script
+## Quick Setup Scripts
 
-A convenience script is provided in this repo:
+### Standard Setup
 
 ```bash
 sudo ./setup-protonvpn.sh
 ```
+
+### Secure Setup (Recommended)
+
+For enhanced credential security with systemd hardening:
+
+```bash
+sudo ./setup-protonvpn-secure.sh
+```
+
+**Security features of the secure setup:**
+
+| Feature | Description |
+|---------|-------------|
+| **Isolated credentials** | Stored in `/etc/openvpn/auth/` with `600` permissions |
+| **Systemd hardening** | Service runs with restricted capabilities and namespaces |
+| **Secure deletion** | Uses `shred` to securely remove old credentials |
+| **Memory safety** | Credentials cleared from shell variables after use |
+
+### Credential Rotation
+
+To update your credentials without editing files directly:
+
+```bash
+sudo ./rotate-credentials.sh
+```
+
+This securely overwrites existing credentials and restarts the VPN.
 
 ---
 
@@ -326,11 +353,15 @@ The uninstall script will:
 
 ## Files in This Repository
 
-- `README.md` - This documentation
-- `setup-protonvpn.sh` - Automated setup script
-- `uninstall-protonvpn.sh` - Uninstall/undo script
-- `killswitch.sh` - VPN kill switch script
-- `update-resolv-conf` - DNS update script for OpenVPN
+| File | Description |
+|------|-------------|
+| `README.md` | This documentation |
+| `setup-protonvpn.sh` | Basic automated setup script |
+| `setup-protonvpn-secure.sh` | Secure setup with systemd hardening |
+| `rotate-credentials.sh` | Securely rotate VPN credentials |
+| `uninstall-protonvpn.sh` | Uninstall/undo script |
+| `killswitch.sh` | VPN kill switch script |
+| `update-resolv-conf` | DNS update script for OpenVPN |
 
 ## License
 
