@@ -47,22 +47,16 @@ apt update && apt upgrade -y
 echo -e "${GREEN}Step 2: Installing dependencies...${NC}"
 apt install -y openvpn wget unzip resolvconf curl
 
-echo -e "${GREEN}Step 3: Downloading ProtonVPN configuration files...${NC}"
+echo -e "${GREEN}Step 3: Checking for ProtonVPN configuration files...${NC}"
 cd /etc/openvpn
 
-if [[ ! -d "protonvpn-configs" ]]; then
-    mkdir -p protonvpn-configs
-    cd protonvpn-configs
-    wget -q "https://protonvpn.com/download/protonvpn_server_configs.zip" || {
-        echo -e "${YELLOW}Could not download configs automatically.${NC}"
-        echo "Please download manually from https://account.protonvpn.com/downloads"
-    }
-
-    if [[ -f "protonvpn_server_configs.zip" ]]; then
-        unzip -o protonvpn_server_configs.zip
-        rm protonvpn_server_configs.zip
-    fi
-    cd /etc/openvpn
+# Proton no longer publishes a bulk config zip; configs must be downloaded from the dashboard
+mkdir -p protonvpn-configs
+if ! ls /etc/openvpn/protonvpn-configs/*.ovpn &> /dev/null; then
+    echo -e "${YELLOW}Download .ovpn files from https://account.protonvpn.com/downloads${NC}"
+    echo "(OpenVPN configuration files → GNU/Linux) and copy them to /etc/openvpn/protonvpn-configs/"
+    echo "Then re-run this script."
+    exit 1
 fi
 
 echo -e "${GREEN}Step 4: Setting up secure credentials...${NC}"
@@ -105,7 +99,7 @@ echo "Available server configurations:"
 ls /etc/openvpn/protonvpn-configs/*.ovpn 2>/dev/null | head -20 | while read f; do basename "$f"; done
 
 echo ""
-read -p "Enter the config file name (e.g., us-free-01.protonvpn.udp.ovpn): " server_config
+read -p "Enter the config file name (e.g., de-123.protonvpn.udp.ovpn): " server_config
 
 if [[ ! -f "/etc/openvpn/protonvpn-configs/$server_config" ]]; then
     echo -e "${YELLOW}Config file not found. Looking for any available config...${NC}"
@@ -227,7 +221,11 @@ systemctl daemon-reload
 
 echo -e "${GREEN}Step 10: Configuring Pi-hole compatibility...${NC}"
 
-if [[ -f /etc/pihole/setupVars.conf ]]; then
+# Pi-hole v6 stores settings in pihole.toml; v5 used setupVars.conf
+if [[ -f /etc/pihole/pihole.toml ]]; then
+    pihole-FTL --config dns.listeningMode ALL
+    pihole restartdns
+elif [[ -f /etc/pihole/setupVars.conf ]]; then
     if grep -q "DNSMASQ_LISTENING" /etc/pihole/setupVars.conf; then
         sed -i 's/DNSMASQ_LISTENING=.*/DNSMASQ_LISTENING=all/' /etc/pihole/setupVars.conf
     else
