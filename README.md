@@ -1,11 +1,11 @@
 # Pi-hole + ProtonVPN Setup for Raspberry Pi
 
-This guide covers setting up ProtonVPN alongside Pi-hole on the same Raspberry Pi, allowing you to route all your DNS traffic through Pi-hole while optionally routing internet traffic through ProtonVPN.
+This guide covers setting up ProtonVPN alongside Pi-hole on the same Raspberry Pi, so the Pi's own traffic (including Pi-hole's upstream DNS queries) goes out through ProtonVPN. Other devices' internet traffic is **not** tunneled; see Architecture Overview.
 
 ## Prerequisites
 
 - Raspberry Pi (3B+, 4, or newer recommended) with Raspberry Pi OS (Debian-based)
-- Pi-hole already installed and running
+- Pi-hole already installed and running (v6 or later; v5 notes are included where settings differ)
 - ProtonVPN account (Free tier works, but Plus/Unlimited recommended for better speeds)
 - SSH access to your Raspberry Pi
 - Static IP configured on your Pi
@@ -13,10 +13,11 @@ This guide covers setting up ProtonVPN alongside Pi-hole on the same Raspberry P
 ## Architecture Overview
 
 ```
-[Devices] → [Pi-hole (DNS)] → [ProtonVPN Tunnel] → [Internet]
+[Devices] ──DNS queries──→ [Pi-hole] ──upstream DNS──→ [ProtonVPN tunnel] → [Internet]
+[Devices] ──all other traffic──────────────────────────────────────────────→ [Internet] (not tunneled)
 ```
 
-Pi-hole handles DNS filtering while ProtonVPN encrypts outbound traffic.
+Pi-hole filters DNS for your network, and the VPN hides the Pi's upstream DNS lookups (and anything else the Pi itself does) from your ISP. Your other devices' browsing and streaming still use your normal connection. To tunnel them, run the VPN on those devices or on your router, or make the Pi their gateway (not covered here).
 
 ---
 
@@ -40,14 +41,14 @@ sudo apt install -y openvpn wget unzip resolvconf
 4. Choose your preferred protocol: **UDP** (recommended) or **TCP**
 5. Download configuration files for your desired servers
 
-Alternatively, download all configs:
+Proton no longer offers a single zip of all configs, so download the `.ovpn` files you want and copy them to the Pi:
 
 ```bash
-cd /etc/openvpn
-sudo wget "https://protonvpn.com/download/protonvpn_server_configs.zip"
-sudo unzip protonvpn_server_configs.zip
-sudo rm protonvpn_server_configs.zip
+scp ~/Downloads/*.ovpn pi@<PI_IP>:/tmp/
+ssh pi@<PI_IP> "sudo mv /tmp/*.ovpn /etc/openvpn/"
 ```
+
+> Free-plan accounts can only use Proton's free servers. To pick a specific country, you need a paid plan.
 
 ## Step 4: Create ProtonVPN Credentials File
 
@@ -104,18 +105,15 @@ down /etc/openvpn/update-resolv-conf
 
 Keep Pi-hole handling local DNS while the Pi itself uses VPN:
 
-Edit Pi-hole's DNS settings:
+No Pi-hole changes are needed: once the tunnel is up, Pi-hole's upstream queries leave the Pi through it. To check or change the upstream servers:
 
 ```bash
-sudo nano /etc/pihole/setupVars.conf
+# Pi-hole v6
+sudo pihole-FTL --config dns.upstreams
+sudo pihole-FTL --config dns.upstreams '["1.1.1.1", "9.9.9.9"]'
 ```
 
-Ensure your upstream DNS is set (ProtonVPN's DNS or your preference):
-
-```
-PIHOLE_DNS_1=10.8.8.1
-PIHOLE_DNS_2=1.1.1.1
-```
+On Pi-hole v5, edit `PIHOLE_DNS_1` / `PIHOLE_DNS_2` in `/etc/pihole/setupVars.conf` instead.
 
 ### Option B: Route All Traffic Through VPN
 
@@ -274,18 +272,12 @@ sudo journalctl -u openvpn@protonvpn -f
 
 Ensure Pi-hole is listening on all interfaces:
 ```bash
-sudo nano /etc/pihole/setupVars.conf
-```
-
-Set:
-```
-DNSMASQ_LISTENING=all
-```
-
-Then restart:
-```bash
+# Pi-hole v6
+sudo pihole-FTL --config dns.listeningMode ALL
 pihole restartdns
 ```
+
+On Pi-hole v5, set `DNSMASQ_LISTENING=all` in `/etc/pihole/setupVars.conf`, then run `pihole restartdns`.
 
 ### DNS leaks detected
 

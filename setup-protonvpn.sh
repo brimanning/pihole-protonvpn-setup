@@ -37,20 +37,15 @@ apt update && apt upgrade -y
 echo -e "${GREEN}Step 2: Installing dependencies...${NC}"
 apt install -y openvpn wget unzip resolvconf curl
 
-echo -e "${GREEN}Step 3: Downloading ProtonVPN configuration files...${NC}"
+echo -e "${GREEN}Step 3: Checking for ProtonVPN configuration files...${NC}"
 cd /etc/openvpn
 
-if [[ ! -f "protonvpn_server_configs.zip" ]]; then
-    wget -q "https://protonvpn.com/download/protonvpn_server_configs.zip" || {
-        echo -e "${YELLOW}Could not download configs automatically.${NC}"
-        echo "Please download manually from https://account.protonvpn.com/downloads"
-        echo "and place in /etc/openvpn/"
-    }
-
-    if [[ -f "protonvpn_server_configs.zip" ]]; then
-        unzip -o protonvpn_server_configs.zip
-        rm protonvpn_server_configs.zip
-    fi
+# Proton no longer publishes a bulk config zip; configs must be downloaded from the dashboard
+if ! ls /etc/openvpn/*.ovpn &> /dev/null; then
+    echo -e "${YELLOW}Download .ovpn files from https://account.protonvpn.com/downloads${NC}"
+    echo "(OpenVPN configuration files → GNU/Linux) and copy them to /etc/openvpn/"
+    echo "Then re-run this script."
+    exit 1
 fi
 
 echo -e "${GREEN}Step 4: Setting up credentials...${NC}"
@@ -77,11 +72,11 @@ echo "Available server configurations:"
 ls /etc/openvpn/*.ovpn 2>/dev/null | head -20 | while read f; do basename "$f"; done
 
 echo ""
-read -p "Enter the config file name (e.g., us-free-01.protonvpn.udp.ovpn): " server_config
+read -p "Enter the config file name (e.g., de-123.protonvpn.udp.ovpn): " server_config
 
 if [[ ! -f "/etc/openvpn/$server_config" ]]; then
-    echo -e "${RED}Config file not found. Using default: us-free-01.protonvpn.udp.ovpn${NC}"
-    server_config="us-free-01.protonvpn.udp.ovpn"
+    echo -e "${RED}Config file not found: /etc/openvpn/$server_config${NC}"
+    exit 1
 fi
 
 cp "/etc/openvpn/$server_config" /etc/openvpn/protonvpn.conf
@@ -132,7 +127,11 @@ chmod +x /etc/openvpn/update-resolv-conf
 echo -e "${GREEN}Step 8: Configuring Pi-hole compatibility...${NC}"
 
 # Ensure Pi-hole listens on all interfaces
-if [[ -f /etc/pihole/setupVars.conf ]]; then
+# Pi-hole v6 stores settings in pihole.toml; v5 used setupVars.conf
+if [[ -f /etc/pihole/pihole.toml ]]; then
+    pihole-FTL --config dns.listeningMode ALL
+    pihole restartdns
+elif [[ -f /etc/pihole/setupVars.conf ]]; then
     if grep -q "DNSMASQ_LISTENING" /etc/pihole/setupVars.conf; then
         sed -i 's/DNSMASQ_LISTENING=.*/DNSMASQ_LISTENING=all/' /etc/pihole/setupVars.conf
     else

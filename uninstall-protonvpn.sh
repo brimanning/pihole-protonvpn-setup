@@ -98,7 +98,16 @@ fi
 
 # Step 5: Reset Pi-hole DNS listening setting
 echo -e "${GREEN}Step 5: Checking Pi-hole configuration...${NC}"
-if [[ -f /etc/pihole/setupVars.conf ]]; then
+if [[ -f /etc/pihole/pihole.toml ]]; then
+    read -p "Reset Pi-hole dns.listeningMode to LOCAL? (y/n): " reset_pihole
+    if [[ $reset_pihole == "y" ]]; then
+        pihole-FTL --config dns.listeningMode LOCAL
+        pihole restartdns
+        echo "  - Pi-hole DNS listening reset to local"
+    else
+        echo "  - Skipped (keeping Pi-hole settings)"
+    fi
+elif [[ -f /etc/pihole/setupVars.conf ]]; then
     read -p "Reset Pi-hole DNSMASQ_LISTENING to 'local'? (y/n): " reset_pihole
     if [[ $reset_pihole == "y" ]]; then
         sed -i 's/DNSMASQ_LISTENING=all/DNSMASQ_LISTENING=local/' /etc/pihole/setupVars.conf
