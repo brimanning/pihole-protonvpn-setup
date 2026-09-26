@@ -199,6 +199,12 @@ ip addr show tun0
 
 ## Step 10: Configure Firewall (Optional but Recommended)
 
+> **Match your LAN subnet.** The examples below, and `LOCAL_NETWORK` in `killswitch.sh`, use `192.168.1.0/24`. Change them to your network's subnet, or clients won't be able to reach Pi-hole DNS or the admin page. For example, TP-Link Deco mesh networks default to `192.168.68.0/22`. Check yours on the Pi with:
+>
+> ```bash
+> ip -4 route | grep -v default | grep "$(ip route | awk '/default/ {print $5; exit}')"
+> ```
+
 Install and configure UFW to prevent leaks:
 
 ```bash
